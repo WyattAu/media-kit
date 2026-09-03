@@ -1,0 +1,47 @@
+[package]
+name = "media-kit"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.85"
+license = "MIT OR Apache-2.0"
+description = "Full image pipeline — sniff, meta, resize, encode, composite, variants with bomb-guard and async support"
+repository = "https://github.com/WyattAu/media-kit"
+readme = "README.md"
+keywords = ["image", "thumbnail", "pipeline", "webp", "avif"]
+categories = ["multimedia::images"]
+
+[dependencies]
+image = { version = "0.25", default-features = false }
+thiserror = { version = "2", default-features = false }
+serde = { version = "1", features = ["derive"], optional = true }
+serde_json = { version = "1", optional = true }
+kamadak-exif = { version = "0.5", optional = true }
+fast_image_resize = { version = "4", optional = true }
+webp = { version = "0.3", optional = true }
+ravif = { version = "0.11", default-features = false, optional = true }
+rgb = { version = "0.8", optional = true }
+tokio = { version = "1", features = ["rt"], optional = true }
+
+[dev-dependencies]
+proptest = "1"
+criterion = "0.5"
+tokio = { version = "1", features = ["full"] }
+
+[features]
+default = ["std", "jpeg", "png", "gif", "webp"]
+std = ["thiserror/std"]
+jpeg = ["image/jpeg"]
+png = ["image/png"]
+gif = ["image/gif"]
+webp = ["image/webp"]
+webp-lossy = ["dep:webp"]
+avif = ["image/avif", "dep:ravif", "dep:rgb"]
+exif = ["dep:kamadak-exif"]
+fast-resize = ["dep:fast_image_resize"]
+async = ["dep:tokio"]
+serde = ["dep:serde", "dep:serde_json"]
+full = ["serde", "exif", "avif", "webp-lossy", "fast-resize", "async"]
+
+[[bench]]
+name = "pipeline"
+harness = false
