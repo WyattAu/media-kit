@@ -1,0 +1,26 @@
+[package]
+name = "media-kit-fuzz"
+version = "0.0.0"
+publish = false
+edition = "2021"
+
+[workspace]
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4"
+media-kit = { path = ".." }
+
+[[bin]]
+name = "fuzz_sniff"
+path = "fuzz_targets/fuzz_sniff.rs"
+test = false
+doc = false
+
+[[bin]]
+name = "fuzz_limits"
+path = "fuzz_targets/fuzz_limits.rs"
+test = false
+doc = false
