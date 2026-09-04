@@ -143,7 +143,10 @@ mod tests {
     #[test]
     fn jpeg_quality_roundtrip() {
         let bytes = encode(&img(8, 8), &OutFormat::Jpeg(80)).unwrap();
-        assert_eq!(crate::sniff::sniff(&bytes), Some(crate::sniff::Format::Jpeg));
+        assert_eq!(
+            crate::sniff::sniff(&bytes),
+            Some(crate::sniff::Format::Jpeg)
+        );
         let back = image::load_from_memory(&bytes).unwrap();
         assert_eq!((back.width(), back.height()), (8, 8));
     }
@@ -163,7 +166,10 @@ mod tests {
     #[test]
     fn webp_roundtrip() {
         let bytes = encode(&img(4, 4), &OutFormat::WebP(None)).unwrap();
-        assert_eq!(crate::sniff::sniff(&bytes), Some(crate::sniff::Format::WebP));
+        assert_eq!(
+            crate::sniff::sniff(&bytes),
+            Some(crate::sniff::Format::WebP)
+        );
     }
 
     #[test]

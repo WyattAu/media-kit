@@ -3,7 +3,7 @@
 use criterion::{criterion_group, criterion_main, Criterion};
 
 use media_kit::encode::{encode, OutFormat};
-use media_kit::resize::{resize, Fit, Filter};
+use media_kit::resize::{resize, Filter, Fit};
 use media_kit::sniff::sniff;
 use media_kit::testutil::noise_image;
 
@@ -32,7 +32,9 @@ fn bench_encode_webp(c: &mut Criterion) {
     c.bench_function("encode webp lossless 800x600", |b| {
         b.iter(|| encode(&src, &OutFormat::WebP(None)))
     });
-    c.bench_function("encode png 800x600", |b| b.iter(|| encode(&src, &OutFormat::Png)));
+    c.bench_function("encode png 800x600", |b| {
+        b.iter(|| encode(&src, &OutFormat::Png))
+    });
 }
 
 criterion_group!(benches, bench_resize, bench_sniff, bench_encode_webp);

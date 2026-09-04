@@ -3,7 +3,7 @@
 use media_kit::encode::{encode, OutFormat};
 use media_kit::meta::{dimensions, enforce_limits, Limits};
 use media_kit::pipeline::Pipeline;
-use media_kit::resize::{Fit, Filter};
+use media_kit::resize::{Filter, Fit};
 use media_kit::sniff::{sniff, Format};
 use media_kit::testutil::{noise_image, tiny_jpeg, tiny_png};
 use media_kit::variants::{Variant, VariantSet};
@@ -121,7 +121,11 @@ fn variants_web_standard_three_outputs_expected_dims() {
     let outs = set.generate(&img).unwrap();
     assert_eq!(outs.len(), 3);
 
-    let expect = [("thumb", (200u32, 150u32)), ("medium", (800, 600)), ("large", (1920, 1440))];
+    let expect = [
+        ("thumb", (200u32, 150u32)),
+        ("medium", (800, 600)),
+        ("large", (1920, 1440)),
+    ];
     for ((name, fmt, bytes), (want_name, want_dims)) in outs.iter().zip(expect) {
         assert_eq!(name, want_name);
         assert_eq!(*fmt, OutFormat::WebP(None));
@@ -160,12 +164,10 @@ fn jpeg_quality_scales_size() {
 fn pipeline_rejects_bad_input() {
     assert!(Pipeline::new(OutFormat::Png).run(b"junk").is_err());
     let jpg = tiny_jpeg();
-    assert!(
-        Pipeline::new(OutFormat::Png)
-            .limits(Limits::new().max_bytes(2))
-            .run(&jpg)
-            .is_err()
-    );
+    assert!(Pipeline::new(OutFormat::Png)
+        .limits(Limits::new().max_bytes(2))
+        .run(&jpg)
+        .is_err());
 }
 
 #[cfg(feature = "serde")]

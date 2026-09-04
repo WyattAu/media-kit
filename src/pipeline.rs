@@ -7,7 +7,7 @@ use image::DynamicImage;
 use crate::encode::OutFormat;
 use crate::error::MediaError;
 use crate::meta::{enforce_limits, Limits};
-use crate::resize::{Fit, Filter};
+use crate::resize::{Filter, Fit};
 use crate::sniff;
 
 /// A single operation in the pipeline.
@@ -48,6 +48,7 @@ impl std::fmt::Debug for Op {
 /// # Example
 ///
 /// ```
+/// # fn main() -> Result<(), media_kit::MediaError> {
 /// use media_kit::pipeline::Pipeline;
 /// use media_kit::resize::{Fit, Filter};
 /// use media_kit::encode::OutFormat;
@@ -55,9 +56,10 @@ impl std::fmt::Debug for Op {
 /// let bytes = media_kit::testutil::tiny_jpeg();
 /// let webp = Pipeline::new(OutFormat::WebP(None))
 ///     .resize(Fit::MaxSide(4), Filter::Lanczos3)
-///     .run(&bytes)
-///     .unwrap();
+///     .run(&bytes)?;
 /// assert!(!webp.is_empty());
+/// # Ok(())
+/// # }
 /// ```
 #[derive(Debug, Clone)]
 pub struct Pipeline {
@@ -124,8 +126,8 @@ impl Pipeline {
             ));
         }
         enforce_limits(bytes, &self.limits)?;
-        let mut img = image::load_from_memory(bytes)
-            .map_err(|e| MediaError::Decode(e.to_string()))?;
+        let mut img =
+            image::load_from_memory(bytes).map_err(|e| MediaError::Decode(e.to_string()))?;
         for op in &self.ops {
             img = apply_op(&img, op)?;
         }
@@ -152,9 +154,18 @@ impl Pipeline {
 fn apply_op(img: &DynamicImage, op: &Op) -> Result<DynamicImage, MediaError> {
     Ok(match op {
         Op::Resize(fit, filter) => crate::resize::resize(img, fit, *filter),
-        Op::Overlay { img: over, x, y, opacity } => {
-            crate::composite::overlay(img, over, *x, *y, crate::composite::Blend::Over { opacity: *opacity })
-        }
+        Op::Overlay {
+            img: over,
+            x,
+            y,
+            opacity,
+        } => crate::composite::overlay(
+            img,
+            over,
+            *x,
+            *y,
+            crate::composite::Blend::Over { opacity: *opacity },
+        ),
         Op::StripExif => img.clone(),
     })
 }

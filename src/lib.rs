@@ -6,6 +6,7 @@
 //! # Example
 //!
 //! ```
+//! # fn main() -> Result<(), media_kit::MediaError> {
 //! use media_kit::pipeline::Pipeline;
 //! use media_kit::resize::{Fit, Filter};
 //! use media_kit::encode::OutFormat;
@@ -13,9 +14,10 @@
 //! let jpeg = media_kit::testutil::tiny_jpeg();
 //! let out = Pipeline::new(OutFormat::WebP(None))
 //!     .resize(Fit::MaxSide(200), Filter::Lanczos3)
-//!     .run(&jpeg)
-//!     .unwrap();
+//!     .run(&jpeg)?;
 //! assert!(!out.is_empty());
+//! # Ok(())
+//! # }
 //! ```
 
 #![forbid(unsafe_code)]

@@ -164,9 +164,15 @@ mod tests {
     fn reject_oversize_dims() {
         let png = testutil::tiny_png(64, 32);
         let err = enforce_limits(&png, &Limits::new().max_width(16)).unwrap_err();
-        assert!(matches!(err, MediaError::DimensionsTooLarge { max: 16, got: 64 }));
+        assert!(matches!(
+            err,
+            MediaError::DimensionsTooLarge { max: 16, got: 64 }
+        ));
         let err = enforce_limits(&png, &Limits::new().max_height(8)).unwrap_err();
-        assert!(matches!(err, MediaError::DimensionsTooLarge { max: 8, got: 32 }));
+        assert!(matches!(
+            err,
+            MediaError::DimensionsTooLarge { max: 8, got: 32 }
+        ));
     }
 
     #[test]

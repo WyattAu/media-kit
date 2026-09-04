@@ -4,7 +4,7 @@ use std::vec::Vec;
 
 use crate::encode::OutFormat;
 use crate::error::MediaError;
-use crate::resize::{resize, Fit, Filter};
+use crate::resize::{resize, Filter, Fit};
 
 /// Named output configuration.
 #[derive(Debug, Clone, PartialEq)]
@@ -74,9 +74,21 @@ impl VariantSet {
     #[must_use]
     pub fn web_standard() -> Self {
         Self::new()
-            .with(Variant::new("thumb", Fit::MaxSide(200), OutFormat::WebP(None)))
-            .with(Variant::new("medium", Fit::Width(800), OutFormat::WebP(None)))
-            .with(Variant::new("large", Fit::Width(1920), OutFormat::WebP(None)))
+            .with(Variant::new(
+                "thumb",
+                Fit::MaxSide(200),
+                OutFormat::WebP(None),
+            ))
+            .with(Variant::new(
+                "medium",
+                Fit::Width(800),
+                OutFormat::WebP(None),
+            ))
+            .with(Variant::new(
+                "large",
+                Fit::Width(1920),
+                OutFormat::WebP(None),
+            ))
     }
 
     /// Encode one image into every variant.
@@ -148,7 +160,11 @@ mod tests {
     #[test]
     fn custom_set_mixed_formats() {
         let set = VariantSet::new()
-            .with(Variant::new("avatar", Fit::Cover(64, 64), OutFormat::Jpeg(85)))
+            .with(Variant::new(
+                "avatar",
+                Fit::Cover(64, 64),
+                OutFormat::Jpeg(85),
+            ))
             .with(Variant::new("orig", Fit::MaxSide(50), OutFormat::Png));
         let out = set.generate(&img(300, 100)).unwrap();
         assert_eq!(out.len(), 2);

@@ -249,7 +249,15 @@ mod tests {
             *p = Rgba([0, 0, 255, 0]);
         }
         let over = DynamicImage::ImageRgba8(over_img);
-        let out = overlay(&base, &over, 0, 0, Blend::Flatten { background: [0, 255, 0] });
+        let out = overlay(
+            &base,
+            &over,
+            0,
+            0,
+            Blend::Flatten {
+                background: [0, 255, 0],
+            },
+        );
         assert_eq!(out.get_pixel(0, 0).0, [0, 255, 0, 255]);
     }
 

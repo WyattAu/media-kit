@@ -5,7 +5,7 @@ use proptest::prelude::*;
 // Debug-mode image ops are slow; keep case count modest.
 const CASES: u32 = 32;
 
-use media_kit::resize::{resize_with, Fit, Filter};
+use media_kit::resize::{resize_with, Filter, Fit};
 use media_kit::sniff::{self, Format};
 use media_kit::testutil::tiny_jpeg;
 
