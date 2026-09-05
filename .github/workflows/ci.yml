@@ -1,3 +1,10 @@
+# NOTE: intentionally NOT calling the shared engineering-standards workflow
+# (tier b): its unconditional `cargo check --no-default-features` step fails
+# here BY DESIGN — the crate compile_error!s unless at least one decode
+# format is enabled. The check-no-default job below pins --features jpeg
+# instead. All other shared gates (fmt, clippy -D warnings, all-features
+# check/test) are covered by the jobs below.
+
 name: CI
 
 on:
