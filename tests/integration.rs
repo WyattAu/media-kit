@@ -1,3 +1,6 @@
+// Tests assert invariants directly; unwraps keep failures loud.
+#![allow(clippy::unwrap_used, clippy::expect_used)]
+
 //! End-to-end tests for the enabled formats.
 
 use media_kit::encode::{encode, OutFormat};

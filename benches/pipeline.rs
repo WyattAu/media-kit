@@ -1,3 +1,6 @@
+// Bench fixtures: in-memory encodes have no failure path.
+#![allow(clippy::unwrap_used, clippy::expect_used)]
+
 //! Criterion benches: resize, sniff, webp encode.
 
 use criterion::{criterion_group, criterion_main, Criterion};

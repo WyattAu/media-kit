@@ -1,3 +1,6 @@
+// Test fixtures: in-memory encodes of valid images have no failure path
+// (see INVARIANT comments); expect keeps violations loud.
+#![allow(clippy::unwrap_used, clippy::expect_used)]
 //! Shared sample media for doctests, unit tests, and benches.
 //!
 //! Encoded samples are generated once per process and cached.
@@ -11,6 +14,7 @@ use image::RgbaImage;
 static TINY_JPEG: OnceLock<Vec<u8>> = OnceLock::new();
 
 /// Deterministic 8x8 JPEG.
+#[cfg(feature = "jpeg")]
 #[must_use]
 pub fn tiny_jpeg() -> Vec<u8> {
     TINY_JPEG

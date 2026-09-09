@@ -21,6 +21,7 @@
 //! ```
 
 #![forbid(unsafe_code)]
+#![cfg_attr(test, allow(clippy::unwrap_used, clippy::expect_used))] // tests assert invariants directly
 #![deny(missing_docs)]
 
 pub mod composite;
