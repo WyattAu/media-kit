@@ -9,6 +9,7 @@ repository = "https://github.com/WyattAu/media-kit"
 readme = "README.md"
 keywords = ["image", "thumbnail", "pipeline", "webp", "avif"]
 categories = ["multimedia::images"]
+exclude = ["/target"]
 
 [dependencies]
 image = { version = "0.25", default-features = false }
@@ -45,3 +46,7 @@ full = ["serde", "exif", "avif", "webp-lossy", "fast-resize", "async"]
 [[bench]]
 name = "pipeline"
 harness = false
+
+[lints.clippy]
+unwrap_used = "warn"
+expect_used = "warn"
