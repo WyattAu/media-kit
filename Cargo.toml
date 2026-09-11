@@ -16,11 +16,8 @@ image = { version = "0.25", default-features = false }
 thiserror = { version = "2", default-features = false }
 serde = { version = "1", features = ["derive"], optional = true }
 serde_json = { version = "1", optional = true }
-kamadak-exif = { version = "0.5", optional = true }
-fast_image_resize = { version = "4", optional = true }
 webp = { version = "0.3", optional = true }
-ravif = { version = "0.11", default-features = false, optional = true }
-rgb = { version = "0.8", optional = true }
+kamadak-exif = { version = "0.5", optional = true, default-features = false }
 tokio = { version = "1", features = ["rt"], optional = true }
 
 [dev-dependencies]
@@ -36,9 +33,9 @@ png = ["image/png"]
 gif = ["image/gif"]
 webp = ["image/webp"]
 webp-lossy = ["dep:webp"]
-avif = ["image/avif", "dep:ravif", "dep:rgb"]
+avif = ["image/avif"]
 exif = ["dep:kamadak-exif"]
-fast-resize = ["dep:fast_image_resize"]
+fast-resize = []
 async = ["dep:tokio"]
 serde = ["dep:serde", "dep:serde_json"]
 full = ["serde", "exif", "avif", "webp-lossy", "fast-resize", "async"]
@@ -50,3 +47,8 @@ harness = false
 [lints.clippy]
 unwrap_used = "warn"
 expect_used = "warn"
+
+# kamadak-exif is used as `exif::` (renamed lib) in src/exif.rs; machete
+# cannot see the rename.
+[package.metadata.cargo-machete]
+ignored = ["kamadak-exif"]

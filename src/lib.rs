@@ -7,6 +7,8 @@
 //!
 //! ```
 //! # fn main() -> Result<(), media_kit::MediaError> {
+//! # #[cfg(feature = "jpeg")]
+//! # {
 //! use media_kit::pipeline::Pipeline;
 //! use media_kit::resize::{Fit, Filter};
 //! use media_kit::encode::OutFormat;
@@ -16,6 +18,7 @@
 //!     .resize(Fit::MaxSide(200), Filter::Lanczos3)
 //!     .run(&jpeg)?;
 //! assert!(!out.is_empty());
+//! # }
 //! # Ok(())
 //! # }
 //! ```
@@ -40,11 +43,3 @@ pub mod exif;
 pub mod testutil;
 
 pub use error::MediaError;
-
-pub(crate) mod internal {
-    /// Compile-time assertion that at least one decode feature is on.
-    #[cfg(not(any(feature = "jpeg", feature = "png", feature = "gif", feature = "webp")))]
-    compile_error!(
-        "media-kit needs at least one image format feature (jpeg/png/gif/webp) to decode"
-    );
-}

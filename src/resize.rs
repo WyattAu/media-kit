@@ -145,6 +145,7 @@ fn crop_to_fill(w: u32, h: u32, tw: u32, th: u32) -> Crop {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[cfg(any(feature = "jpeg", feature = "png"))]
     use crate::testutil;
     use image::RgbaImage;
 
@@ -255,6 +256,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "jpeg")]
     fn resize_roundtrip_via_jpeg_source() {
         let jpg = testutil::tiny_jpeg();
         let decoded = image::load_from_memory(&jpg).unwrap();

@@ -49,6 +49,8 @@ impl std::fmt::Debug for Op {
 ///
 /// ```
 /// # fn main() -> Result<(), media_kit::MediaError> {
+/// # #[cfg(feature = "jpeg")]
+/// # {
 /// use media_kit::pipeline::Pipeline;
 /// use media_kit::resize::{Fit, Filter};
 /// use media_kit::encode::OutFormat;
@@ -58,6 +60,7 @@ impl std::fmt::Debug for Op {
 ///     .resize(Fit::MaxSide(4), Filter::Lanczos3)
 ///     .run(&bytes)?;
 /// assert!(!webp.is_empty());
+/// # }
 /// # Ok(())
 /// # }
 /// ```
@@ -173,9 +176,11 @@ fn apply_op(img: &DynamicImage, op: &Op) -> Result<DynamicImage, MediaError> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[cfg(any(feature = "jpeg", feature = "png"))]
     use crate::testutil;
 
     #[test]
+    #[cfg(feature = "jpeg")]
     fn thumb_to_webp_end_to_end() {
         let jpg = testutil::tiny_jpeg();
         let out = Pipeline::new(OutFormat::WebP(None))
@@ -189,6 +194,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "png")]
     fn jpeg_output_with_quality() {
         let png = testutil::tiny_png(16, 16);
         let out = Pipeline::new(OutFormat::Jpeg(90))
@@ -205,6 +211,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "jpeg")]
     fn rejects_oversize() {
         let jpg = testutil::tiny_jpeg();
         let err = Pipeline::new(OutFormat::Png)
@@ -215,6 +222,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "jpeg")]
     fn overlay_op_runs() {
         let jpg = testutil::tiny_jpeg();
         let over = DynamicImage::new_rgba8(2, 2);
@@ -226,6 +234,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "jpeg")]
     fn debug_hides_overlay_pixels() {
         let p = Pipeline::new(OutFormat::Png)
             .overlay(DynamicImage::new_rgba8(1, 1), 0, 0, 0.5)

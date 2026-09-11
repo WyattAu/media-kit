@@ -5,17 +5,21 @@
 //!
 //! Encoded samples are generated once per process and cached.
 
+#[cfg(any(feature = "jpeg", feature = "png"))]
 use std::io::Cursor;
+#[cfg(any(feature = "jpeg", feature = "png"))]
 use std::sync::OnceLock;
 
 use image::DynamicImage;
 use image::RgbaImage;
 
+#[cfg(feature = "jpeg")]
 static TINY_JPEG: OnceLock<Vec<u8>> = OnceLock::new();
 
 /// Deterministic 8x8 JPEG.
 #[cfg(feature = "jpeg")]
 #[must_use]
+#[allow(clippy::expect_used)] // in-memory encode of a valid image cannot fail
 pub fn tiny_jpeg() -> Vec<u8> {
     TINY_JPEG
         .get_or_init(|| {
@@ -41,7 +45,9 @@ pub fn tiny_jpeg() -> Vec<u8> {
 }
 
 /// Deterministic PNG of arbitrary size.
+#[cfg(feature = "png")]
 #[must_use]
+#[allow(clippy::expect_used)] // in-memory encode of a valid image cannot fail
 pub fn tiny_png(w: u32, h: u32) -> Vec<u8> {
     let img = DynamicImage::ImageRgba8(RgbaImage::from_fn(w, h, |x, y| {
         image::Rgba([
@@ -83,19 +89,23 @@ pub fn noise_image(w: u32, h: u32) -> DynamicImage {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[cfg(any(feature = "jpeg", feature = "png"))]
     use crate::sniff;
 
     #[test]
+    #[cfg(feature = "jpeg")]
     fn tiny_jpeg_sniffs_as_jpeg() {
         assert_eq!(sniff::sniff(&tiny_jpeg()), Some(sniff::Format::Jpeg));
     }
 
     #[test]
+    #[cfg(feature = "png")]
     fn tiny_png_sniffs_as_png() {
         assert_eq!(sniff::sniff(&tiny_png(4, 4)), Some(sniff::Format::Png));
     }
 
     #[test]
+    #[cfg(feature = "jpeg")]
     fn tiny_jpeg_dims() {
         let img = image::load_from_memory(&tiny_jpeg()).unwrap();
         assert_eq!((img.width(), img.height()), (8, 8));

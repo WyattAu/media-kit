@@ -110,6 +110,7 @@ pub fn enforce_limits(bytes: &[u8], limits: &Limits) -> Result<(), MediaError> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[cfg(any(feature = "jpeg", feature = "png"))]
     use crate::testutil;
 
     #[test]
@@ -127,12 +128,14 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "png")]
     fn dimensions_of_png() {
         let png = testutil::tiny_png(64, 32);
         assert_eq!(dimensions(&png), Some((64, 32)));
     }
 
     #[test]
+    #[cfg(feature = "jpeg")]
     fn dimensions_of_jpeg() {
         let jpg = testutil::tiny_jpeg();
         assert_eq!(dimensions(&jpg), Some((8, 8)));
@@ -145,12 +148,14 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "jpeg")]
     fn accept_within_limits() {
         let jpg = testutil::tiny_jpeg();
         assert!(enforce_limits(&jpg, &Limits::default()).is_ok());
     }
 
     #[test]
+    #[cfg(feature = "jpeg")]
     fn reject_oversize_bytes() {
         let jpg = testutil::tiny_jpeg();
         let err = enforce_limits(&jpg, &Limits::new().max_bytes(4)).unwrap_err();
@@ -161,6 +166,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "png")]
     fn reject_oversize_dims() {
         let png = testutil::tiny_png(64, 32);
         let err = enforce_limits(&png, &Limits::new().max_width(16)).unwrap_err();

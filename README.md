@@ -1,5 +1,9 @@
 # media-kit
 
+[![docs.rs](https://docs.rs/media-kit/badge.svg)](https://docs.rs/media-kit)
+[![crates.io](https://img.shields.io/crates/v/media-kit.svg)](https://crates.io/crates/media-kit)
+[![License](https://img.shields.io/badge/license-MIT%2FApache--2.0-blue.svg)](LICENSE)
+
 Full image pipeline for Rust — sniff, meta, resize, encode, composite, variants — with decompression-bomb guards and async support.
 
 ```toml

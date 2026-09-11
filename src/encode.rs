@@ -133,14 +133,18 @@ fn encode_webp_lossy(img: &DynamicImage, quality: f32) -> Result<Vec<u8>, MediaE
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[cfg(any(feature = "jpeg", feature = "png"))]
     use crate::testutil;
+    #[cfg(any(feature = "jpeg", feature = "png", feature = "gif", feature = "webp"))]
     use image::RgbaImage;
 
+    #[cfg(any(feature = "jpeg", feature = "png", feature = "gif", feature = "webp"))]
     fn img(w: u32, h: u32) -> DynamicImage {
         DynamicImage::ImageRgba8(RgbaImage::from_pixel(w, h, image::Rgba([10, 200, 30, 255])))
     }
 
     #[test]
+    #[cfg(feature = "jpeg")]
     fn jpeg_quality_roundtrip() {
         let bytes = encode(&img(8, 8), &OutFormat::Jpeg(80)).unwrap();
         assert_eq!(
@@ -152,18 +156,21 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "png")]
     fn png_roundtrip() {
         let bytes = encode(&img(4, 4), &OutFormat::Png).unwrap();
         assert_eq!(crate::sniff::sniff(&bytes), Some(crate::sniff::Format::Png));
     }
 
     #[test]
+    #[cfg(feature = "gif")]
     fn gif_roundtrip() {
         let bytes = encode(&img(4, 4), &OutFormat::Gif).unwrap();
         assert_eq!(crate::sniff::sniff(&bytes), Some(crate::sniff::Format::Gif));
     }
 
     #[test]
+    #[cfg(feature = "webp")]
     fn webp_roundtrip() {
         let bytes = encode(&img(4, 4), &OutFormat::WebP(None)).unwrap();
         assert_eq!(
@@ -173,6 +180,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "webp")]
     fn webp_lossy_decodes() {
         // With webp-lossy this exercises libwebp; without it the quality is
         // ignored and lossless encoding is used. Both must decode.
@@ -189,6 +197,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "jpeg")]
     fn jpeg_quality_changes_output() {
         let noisy = testutil::noise_image(64, 64);
         let hi = encode(&noisy, &OutFormat::Jpeg(95)).unwrap();

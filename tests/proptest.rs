@@ -1,4 +1,5 @@
 // Tests assert invariants directly; unwraps keep failures loud.
+#![cfg(all(feature = "jpeg", feature = "png"))]
 #![allow(clippy::unwrap_used, clippy::expect_used)]
 
 //! Property-based tests: invariants over arbitrary inputs.

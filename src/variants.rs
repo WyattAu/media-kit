@@ -135,6 +135,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "webp")]
     fn web_standard_produces_three_outputs_with_expected_dims() {
         let set = VariantSet::web_standard();
         let out = set.generate(&img(2048, 1536)).unwrap();
@@ -150,6 +151,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "webp")]
     fn smaller_source_is_not_upscaled() {
         let set = VariantSet::web_standard();
         let out = set.generate(&img(600, 400)).unwrap();
@@ -158,6 +160,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "jpeg")]
     fn custom_set_mixed_formats() {
         let set = VariantSet::new()
             .with(Variant::new(
