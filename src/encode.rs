@@ -1,5 +1,16 @@
 //! Output encoding for supported formats.
 //!
+//! # Quality tuning
+//!
+//! - **JPEG** — `OutFormat::Jpeg(q)` passes `q` (1–100) straight to the
+//!   encoder. Note: `image` 0.25's JPEG encoder does not expose chroma
+//!   subsampling control (it always writes 4:2:2), so quality is the only
+//!   tunable.
+//! - **WebP** — `OutFormat::WebP(None)` is lossless. `WebP(Some(q))` is a
+//!   true lossy quality 0.0–100.0, but only with the `webp-lossy` feature;
+//!   without it the quality value is ignored (see below).
+//! - **PNG/GIF** — lossless; quality is not applicable.
+//!
 //! # WebP quality
 //!
 //! `image` 0.25 can only encode **lossless** WebP, so `OutFormat::WebP(Some(q))`

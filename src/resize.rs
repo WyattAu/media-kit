@@ -1,4 +1,20 @@
 //! Aspect-preserving and cover-fit resizing.
+//!
+//! # Resize backends
+//!
+//! Two backends implement the final resample step:
+//!
+//! - **plain** — [`image::imageops::resize`], always available.
+//! - **fast** — [`fast_image_resize`] with runtime SIMD dispatch
+//!   (SSE4/AVX2/NEON), enabled by the `fast-resize` feature. Used for 8-bit
+//!   pixel formats (`L8`, `La8`, `Rgb8`, `Rgba8`) where the buffers can be
+//!   handed to the SIMD kernels without conversion; every other format
+//!   (16-bit, f32) transparently falls back to the plain backend. Output is
+//!   always reconstructed in the source colorspace.
+//!
+//! Both backends share the same fit/crop logic; only the resample kernel
+//! execution differs, so dimensions are identical and pixel values are
+//! near-identical (differences stem from fixed-point vs float arithmetic).
 
 use image::imageops::FilterType;
 use image::DynamicImage;
@@ -19,7 +35,8 @@ pub enum Fit {
     Exact(u32, u32),
 }
 
-/// Resampling filter. Maps 1:1 onto [`image::imageops::FilterType`].
+/// Resampling filter. Maps 1:1 onto [`image::imageops::FilterType`] and,
+/// with the `fast-resize` feature, onto `fast_image_resize` filters.
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Filter {
@@ -63,7 +80,6 @@ pub fn resize(img: &DynamicImage, fit: &Fit, filter: Filter) -> DynamicImage {
 #[must_use]
 pub fn resize_with(img: &DynamicImage, fit: &Fit, filter: Filter, upscale: bool) -> DynamicImage {
     let (w, h) = (img.width(), img.height());
-    let ft = FilterType::from(filter);
 
     match *fit {
         Fit::MaxSide(side) => {
@@ -72,7 +88,7 @@ pub fn resize_with(img: &DynamicImage, fit: &Fit, filter: Filter, upscale: bool)
                 return img.clone();
             }
             let (nw, nh) = scale_dims(w, h, scale);
-            img.resize_exact(nw.max(1), nh.max(1), ft)
+            resize_exact_backend(img, nw.max(1), nh.max(1), filter)
         }
         Fit::Width(target) => {
             if !upscale && w <= target {
@@ -80,7 +96,7 @@ pub fn resize_with(img: &DynamicImage, fit: &Fit, filter: Filter, upscale: bool)
             }
             let scale = f64::from(target) / f64::from(w);
             let (nw, nh) = scale_dims(w, h, scale);
-            img.resize_exact(nw.max(1), nh.max(1), ft)
+            resize_exact_backend(img, nw.max(1), nh.max(1), filter)
         }
         Fit::Height(target) => {
             if !upscale && h <= target {
@@ -88,7 +104,7 @@ pub fn resize_with(img: &DynamicImage, fit: &Fit, filter: Filter, upscale: bool)
             }
             let scale = f64::from(target) / f64::from(h);
             let (nw, nh) = scale_dims(w, h, scale);
-            img.resize_exact(nw.max(1), nh.max(1), ft)
+            resize_exact_backend(img, nw.max(1), nh.max(1), filter)
         }
         Fit::Cover(tw, th) => {
             let crop = crop_to_fill(w, h, tw, th);
@@ -96,12 +112,116 @@ pub fn resize_with(img: &DynamicImage, fit: &Fit, filter: Filter, upscale: bool)
             if cropped.width() == tw && cropped.height() == th {
                 cropped
             } else {
-                cropped.resize_exact(tw, th, ft)
+                resize_exact_backend(&cropped, tw, th, filter)
             }
         }
-        Fit::Exact(tw, th) => img.resize_exact(tw.max(1), th.max(1), ft),
+        Fit::Exact(tw, th) => resize_exact_backend(img, tw.max(1), th.max(1), filter),
     }
 }
+
+/// Final resample of `img` to exactly `(w, h)`, dispatching to the fastest
+/// available backend for the pixel format (see [module docs](self)).
+#[must_use]
+pub fn resize_exact_backend(img: &DynamicImage, w: u32, h: u32, filter: Filter) -> DynamicImage {
+    #[cfg(feature = "fast-resize")]
+    {
+        if let Some(out) = fast_resize_exact(img, w, h, filter) {
+            return out;
+        }
+    }
+    #[allow(unused_variables)]
+    plain_resize_exact(img, w, h, filter)
+}
+
+/// Force the plain `image::imageops` backend, bypassing dispatch. Exists for
+/// A/B benchmarking and as a documented fallback.
+#[must_use]
+pub fn resize_plain_exact(img: &DynamicImage, w: u32, h: u32, filter: Filter) -> DynamicImage {
+    plain_resize_exact(img, w, h, filter)
+}
+
+/// `true` when the SIMD-accelerated fast backend is compiled in (the
+/// `fast-resize` feature). When `false`, [`resize_exact_backend`] and
+/// [`resize_with`] always use the plain backend.
+#[must_use]
+pub fn fast_resize_available() -> bool {
+    cfg!(feature = "fast-resize")
+}
+
+fn plain_resize_exact(img: &DynamicImage, w: u32, h: u32, filter: Filter) -> DynamicImage {
+    img.resize_exact(w, h, FilterType::from(filter))
+}
+
+#[cfg(feature = "fast-resize")]
+mod fast {
+    use super::Filter;
+    use image::DynamicImage;
+
+    pub(super) fn fast_resize_exact(
+        img: &DynamicImage,
+        w: u32,
+        h: u32,
+        filter: Filter,
+    ) -> Option<DynamicImage> {
+        use fast_image_resize::images::Image;
+        use fast_image_resize::{PixelType, ResizeOptions, Resizer};
+
+        // 8-bit formats map onto FIR pixel types without conversion; anything
+        // else (16-bit, f32) falls back to the plain backend.
+        let pixel_type = match img {
+            DynamicImage::ImageLuma8(_) => PixelType::U8,
+            DynamicImage::ImageLumaA8(_) => PixelType::U8x2,
+            DynamicImage::ImageRgb8(_) => PixelType::U8x3,
+            DynamicImage::ImageRgba8(_) => PixelType::U8x4,
+            _ => return None,
+        };
+        let options = ResizeOptions::new().resize_alg(fir_alg(filter));
+        let mut dst = Image::new(w, h, pixel_type);
+        let mut resizer = Resizer::new();
+        // Resize errors (e.g. absurd dimensions) fall back to the plain
+        // backend so this function keeps its infallible signature.
+        resizer.resize(img, &mut dst, &options).ok()?;
+        dyn_from_fir_buffer(dst, w, h)
+    }
+
+    fn dyn_from_fir_buffer(
+        img: fast_image_resize::images::Image,
+        w: u32,
+        h: u32,
+    ) -> Option<DynamicImage> {
+        let buf = img.buffer().to_vec();
+        match img.pixel_type() {
+            fast_image_resize::PixelType::U8 => {
+                image::GrayImage::from_raw(w, h, buf).map(DynamicImage::ImageLuma8)
+            }
+            fast_image_resize::PixelType::U8x2 => {
+                image::GrayAlphaImage::from_raw(w, h, buf).map(DynamicImage::ImageLumaA8)
+            }
+            fast_image_resize::PixelType::U8x3 => {
+                image::RgbImage::from_raw(w, h, buf).map(DynamicImage::ImageRgb8)
+            }
+            fast_image_resize::PixelType::U8x4 => {
+                image::RgbaImage::from_raw(w, h, buf).map(DynamicImage::ImageRgba8)
+            }
+            _ => None,
+        }
+    }
+
+    /// Filter mapping onto `fast_image_resize` algorithms.
+    pub(super) fn fir_alg(f: Filter) -> fast_image_resize::ResizeAlg {
+        use fast_image_resize::{FilterType, ResizeAlg};
+        match f {
+            Filter::Nearest => ResizeAlg::Nearest,
+            Filter::Triangle => ResizeAlg::Convolution(FilterType::Bilinear),
+            Filter::CatmullRom => ResizeAlg::Convolution(FilterType::CatmullRom),
+            Filter::Gaussian => ResizeAlg::Convolution(FilterType::Gaussian),
+            Filter::Lanczos3 => ResizeAlg::Convolution(FilterType::Lanczos3),
+        }
+    }
+}
+
+#[cfg(feature = "fast-resize")]
+use fast::fast_resize_exact;
 
 fn scale_dims(w: u32, h: u32, scale: f64) -> (u32, u32) {
     (
@@ -262,5 +382,83 @@ mod tests {
         let decoded = image::load_from_memory(&jpg).unwrap();
         let out = resize(&decoded, &Fit::Width(4), Filter::Lanczos3);
         assert_eq!(out.width(), 4);
+    }
+
+    // --- fast-resize backend (feature = "fast-resize") ---
+
+    #[test]
+    #[cfg(feature = "fast-resize")]
+    fn fast_backend_matches_plain_dims() {
+        let src = testutil::noise_image(1000, 600);
+        for (w, h) in [(200u32, 150u32), (320, 192), (30, 90), (600, 360)] {
+            let plain = plain_resize_exact(&src, w, h, Filter::Lanczos3);
+            let out = resize_exact_backend(&src, w, h, Filter::Lanczos3);
+            assert_eq!((out.width(), out.height()), (plain.width(), plain.height()));
+        }
+    }
+
+    #[test]
+    #[cfg(feature = "fast-resize")]
+    fn fast_vs_plain_within_tolerance() {
+        let src = testutil::noise_image(512, 384);
+        for filter in [Filter::Triangle, Filter::CatmullRom, Filter::Lanczos3] {
+            let plain = plain_resize_exact(&src, 200, 150, filter);
+            let fast = fast::fast_resize_exact(&src, 200, 150, filter)
+                .expect("rgba8 must take the fast path");
+            assert_eq!((fast.width(), fast.height()), (200, 150));
+            let a = fast.to_rgb8();
+            let b = plain.to_rgb8();
+            let diff: u64 = a
+                .pixels()
+                .zip(b.pixels())
+                .map(|(p, q)| {
+                    i64::from(p[0]).abs_diff(i64::from(q[0]))
+                        + i64::from(p[1]).abs_diff(i64::from(q[1]))
+                        + i64::from(p[2]).abs_diff(i64::from(q[2]))
+                })
+                .sum();
+            let mean = diff as f64 / f64::from(200 * 150 * 3);
+            assert!(mean <= 2.0, "{filter:?}: mean abs diff {mean:.3} > 2.0");
+        }
+    }
+
+    #[test]
+    #[cfg(feature = "fast-resize")]
+    fn fast_preserves_colorspace() {
+        // Luma8 stays Luma8 through the fast path.
+        let gray = DynamicImage::ImageLuma8(image::GrayImage::from_fn(64, 48, |x, y| {
+            image::Luma([((x * 3 + y) % 256) as u8])
+        }));
+        let out = resize(&gray, &Fit::Width(20), Filter::CatmullRom);
+        assert!(matches!(out, DynamicImage::ImageLuma8(_)));
+        assert_eq!(out.width(), 20);
+
+        let rgba = testutil::noise_image(40, 30);
+        let out = resize(&rgba, &Fit::Width(10), Filter::Lanczos3);
+        assert!(matches!(out, DynamicImage::ImageRgba8(_)));
+    }
+
+    #[test]
+    #[cfg(feature = "fast-resize")]
+    fn fast_upscale_exact_works() {
+        let src = testutil::noise_image(16, 16);
+        let out = resize_with(&src, &Fit::Exact(64, 64), Filter::Lanczos3, false);
+        assert_eq!((out.width(), out.height()), (64, 64));
+    }
+
+    #[test]
+    #[cfg(feature = "fast-resize")]
+    fn fast_filter_mapping_compiles_for_all_variants() {
+        let src = testutil::noise_image(100, 100);
+        for f in [
+            Filter::Nearest,
+            Filter::Triangle,
+            Filter::CatmullRom,
+            Filter::Gaussian,
+            Filter::Lanczos3,
+        ] {
+            let out = resize_exact_backend(&src, 50, 50, f);
+            assert_eq!((out.width(), out.height()), (50, 50));
+        }
     }
 }

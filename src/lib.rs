@@ -1,5 +1,6 @@
 //! Full image pipeline — sniff, meta, resize, encode, composite, variants
-//! with bomb-guard and async support.
+//! with bomb-guard, EXIF auto-orientation, parallel variant fan-out and
+//! async support.
 //!
 //! This crate is std-only (the [`image`] decoder stack requires std).
 //!
@@ -18,6 +19,27 @@
 //!     .resize(Fit::MaxSide(200), Filter::Lanczos3)
 //!     .run(&jpeg)?;
 //! assert!(!out.is_empty());
+//! # }
+//! # Ok(())
+//! # }
+//! ```
+//!
+//! # Variants (decode once, fan out in parallel)
+//!
+//! ```
+//! # fn main() -> Result<(), media_kit::MediaError> {
+//! # #[cfg(all(feature = "webp", feature = "jpeg"))]
+//! # {
+//! use media_kit::variants::{Variant, VariantSet};
+//! use media_kit::resize::Fit;
+//! use media_kit::encode::OutFormat;
+//!
+//! let set = VariantSet::new()
+//!     .with(Variant::new("thumb", Fit::MaxSide(200), OutFormat::WebP(None)))
+//!     .with(Variant::new("medium", Fit::Width(800), OutFormat::Jpeg(85)));
+//! // sniffs, bomb-guards, decodes once, auto-orients, fans out
+//! let outs = set.generate_from_bytes(&media_kit::testutil::tiny_jpeg())?;
+//! assert_eq!(outs.len(), 2);
 //! # }
 //! # Ok(())
 //! # }
