@@ -27,7 +27,7 @@ fast_image_resize = { version = "6.1", optional = true, default-features = false
 
 [dev-dependencies]
 proptest = "1"
-criterion = "0.5"
+criterion = "0.8"
 tokio = { version = "1", features = ["full"] }
 # Deterministic CI perf gate (instruction counts; needs valgrind to run).
 iai-callgrind = "0.16"
