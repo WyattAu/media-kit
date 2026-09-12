@@ -5,6 +5,26 @@ Changelog](https://keepachangelog.com/) — versions follow [semver](https://sem
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-09-12
+
+### Added
+
+- **Claims proof-back** ([CLAIMS.md](CLAIMS.md)): every performance claim in
+  the README mapped to its proof artifact (criterion record, iai
+  instruction gate, test, or code reading).
+- `benches/iai_hot_path.rs` — iai-callgrind instruction gate: `sniff`
+  (19–83 instructions on JPEG/PNG/SVG probes) and the resize backends on a
+  fixed probe — fast backend = 370 372 instructions vs plain = 1 269 458
+  (**3.43× fewer**, load-independent form of the speedup table).
+- Machine-context notes for the wall-clock tables (measured-on records;
+  2026-09-12 re-run under load 43–56 was inconclusive, as expected for a
+  loaded machine).
+
+### Fixed
+
+- README compile-time note corrected: `--no-default-features` now pulls 12
+  crates (`image` 0.25.x gained color-management deps upstream), was 11.
+
 ## [0.2.0] - 2026-09-12
 
 ### Added

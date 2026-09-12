@@ -116,8 +116,9 @@ let webp = Pipeline::new(OutFormat::WebP(None))
 
 Compile-time note: `fast-resize` (fast_image_resize + bytemuck) is the only
 heavy add and is off by default; `parallel` (rayon) and `exif`
-(kamadak-exif) are small. `cargo build --no-default-features` pulls 11
-crates total.
+(kamadak-exif) are small. `cargo build --no-default-features` pulls 12
+crates total (re-verified 2026-09-12; `image` gained color-management deps
+in a 0.25.x patch).
 
 ```rust
 // async (feature = "async")
@@ -130,11 +131,19 @@ let out = pipeline.run_async(bytes).await?;
 
 ## Benchmarks
 
+Wall-clock tables above are measured-on records (i5-9400F, 6-core, 2026-09,
+clean machine — re-run when load < nproc). Every claim is inventoried
+against its proof artifact in [CLAIMS.md](CLAIMS.md), including the
+load-independent iai-callgrind instruction gate (`sniff` = 19–83
+instructions; fast-resize = 3.43× fewer instructions than the `image`
+backend on a fixed probe).
+
 Reproduce with:
 
 ```sh
 cargo bench --bench resize_backends --features fast-resize
 cargo bench --bench parallel
+cargo bench --features fast-resize --bench iai_hot_path   # needs valgrind
 ```
 
 ## License
