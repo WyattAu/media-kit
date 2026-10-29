@@ -1,7 +1,25 @@
 # Changelog
 
 All notable changes to this project are documented here. Format: [Keep a
-Changelog](https://keepachangelog.com/) — versions follow [semver](https://semver.org).
+Changelog](https://keepachangelog.com/): versions follow [semver](https://semver.org).
+
+## [1.0.0] - 2026-10-29
+
+### Declared stable
+
+First 1.0. `media-kit` runs the estate image pipeline; this release commits the sniff, metadata, resize, encode, composite, and variant surfaces, with the bomb-guard, as API-stable.
+
+### Guarantees from here on
+
+- Breaking changes to public items require a minor bump plus a `#[deprecated]`
+  window of at least one minor release.
+- MSRV bumps are minor releases, not patch releases.
+- `#![deny(missing_docs)]` and `#![forbid(unsafe_code)]` are enforced.
+- Decode limits (bomb-guard) are contractual: inputs that pass today are rejected or decoded identically on every later 1.x.
+
+### Explicitly not guaranteed
+
+- New codec backends may arrive in minors behind features; existing decode and encode behaviour will not change.
 
 ## [Unreleased]
 
